@@ -93,7 +93,7 @@ namespace Trev3d.Quest.AprilTags
 			newFrameAvailable = true;
 		}
 
-		private void Update()
+		private void FixedUpdate()
 		{
 			if (!detectionEnabled || !newFrameAvailable || headPoseWhenLastFrameIncoming == default) return;
 
