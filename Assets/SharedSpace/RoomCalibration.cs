@@ -3,11 +3,14 @@ using UnityEngine.InputSystem;
 
 public class RoomCalibration : MonoBehaviour
 {
-    public GameObject cube; // Assign a marker prefab in the inspector
+    public GameObject playerRig; // Assign a marker prefab in the inspector
+    public GameObject playerCamera; // Assign a marker prefab in the inspector
     public GameObject markerPrefab; // Assign a marker prefab in the inspector
+    public GameObject floor; // Assign a marker prefab in the inspector
     private GameObject[] markers = new GameObject[4]; // Store marker GameObjects
     private Vector3[] cornerPoints = new Vector3[4]; // Store corner points
     private int clickCount = 0;
+    private float durration = 500f;
 
     public CalibrationButtonController buttonController; // Reference to button script
 
@@ -26,7 +29,11 @@ public class RoomCalibration : MonoBehaviour
         // Create Input Actions
         primaryButtonAction = new InputAction("PrimaryButton", InputActionType.Button, "<XRController>{RightHand}/primaryButton");
         secondaryButtonAction = new InputAction("SecondaryButton", InputActionType.Button, "<XRController>{RightHand}/secondaryButton");
-
+        // If no camera is explicitly assigned, find the main camera in the scene
+        if (playerCamera == null)
+        {
+            playerCamera = Camera.main.gameObject;
+        }
         // Enable Actions
         primaryButtonAction.Enable();
         secondaryButtonAction.Enable();
@@ -36,13 +43,18 @@ public class RoomCalibration : MonoBehaviour
 
     void Update()
     {
+        if (!floor.activeSelf && !isCalibrating)
+            floor.SetActive(true);
+
         if (isSearching)
         {
             return;
         }
 
-        if (!isCalibrating) return; // Only process input if calibration is active
-                                    // Handle confirmation when all markers are placed
+        if (!isCalibrating)
+            return; // Only process input if calibration is active
+        else if (floor.activeSelf)
+            floor.SetActive(false);
 
         if (primaryButtonAction.WasPressedThisFrame() && clickCount == 4)
         {
@@ -66,6 +78,7 @@ public class RoomCalibration : MonoBehaviour
     public void StartCalibration()
     {
         isCalibrating = true;
+        isSearching = false;
 
         while (clickCount > 0)
         {
@@ -77,6 +90,9 @@ public class RoomCalibration : MonoBehaviour
         //clickCount = 0; // Reset the marker count
         Debug.Log("Calibration started.");
         buttonController.UpdateStatus("Place the first marker.");
+
+        playerRig.transform.position = Vector3.zero;
+        playerRig.transform.eulerAngles = new Vector3(0,0,0);
     }
 
     private void PlaceMarker(Vector3 position)
@@ -132,51 +148,114 @@ public class RoomCalibration : MonoBehaviour
             buttonController.UpdateStatus("Cannot confirm: Place all 4 markers first.");
             return;
         }
+        //Debug.DrawLine(cornerPoints[3], cornerPoints[0], Color.yellow, durration);
 
         // Define the forward wall (between the first two points)
         Vector3 pt1 = new Vector3(cornerPoints[0].x, cornerPoints[3].y, cornerPoints[0].z);
         Vector3 pt2 = new Vector3(cornerPoints[1].x, cornerPoints[3].y, cornerPoints[1].z);
         Vector3 pt3 = new Vector3(cornerPoints[2].x, cornerPoints[3].y, cornerPoints[2].z);
 
+        Debug.Log($"Adjusted Points: Pt1: {pt1}, Pt2: {pt2}, Pt3: {pt3}");
+
         // Compute the center of the room
         Vector3 roomCenter = (pt1 + pt2) / 2;
+        Debug.DrawLine(roomCenter, pt2, Color.green, durration); // Line showing center to Pt2
         Debug.Log($"Calculated room center: {roomCenter}");
 
-        // Compute the center of the room
+        // Compute the vector from the room center to Pt2
         Vector3 centerToPoint = (roomCenter - pt2);
-        Debug.Log($"Calculated room center: {centerToPoint}");
+        Debug.DrawLine(roomCenter, roomCenter + centerToPoint, Color.magenta, durration); // Show the vector
+        Debug.Log($"Vector from room center to Pt2: {centerToPoint}");
 
+        // Recalculate Pt3 to fit specific geometry
         pt3 = CalculateThirdPoint(new Vector2(pt1.x, pt1.z), new Vector2(pt2.x, pt2.z), new Vector2(pt3.x, pt3.z));
+        Debug.DrawLine(pt2, pt3, Color.blue, durration); // Line to new Pt3
+        Debug.Log($"Recalculated Pt3: {pt3}");
 
-
-
+        // Clear all existing markers
         while (clickCount > 0)
         {
             clickCount--;
-            Destroy(markers[clickCount]); // Remove the last placed marker
-            markers[clickCount] = null; // Clear the marker reference
-            cornerPoints[clickCount] = Vector3.zero; // Clear the corner point
+            Destroy(markers[clickCount]);
+            markers[clickCount] = null;
+            cornerPoints[clickCount] = Vector3.zero;
+            Debug.Log($"Cleared marker {clickCount + 1}");
         }
 
-        PlaceMarker(pt1);
-        PlaceMarker(pt2);
-        PlaceMarker(pt3);
+        // Step 1: Translate points so that Pt1 is at the origin
+        Vector3 translationVector2 = pt2 - pt1;
+        Vector3 translationVector3 = pt3 - pt2;
 
-        cube.SetActive(true);
-        FitCube(pt1, pt3, pt2);
+        Debug.DrawLine(pt1, pt1 + translationVector2, Color.red, durration); // Show translation to Pt2
+        Debug.DrawLine(pt2, pt2 + translationVector3, Color.red, durration); // Show translation to Pt3
+        Debug.Log($"Translation Vectors: To Pt2: {translationVector2}, To Pt3: {translationVector3}");
 
-        //buttonController.UpdateStatus("Look For the AprilTag");
-        //isSearching = true;
+        Vector3 reorientedPoint2 = translationVector2.magnitude * Vector3.right;
+        Vector3 reorientedPoint3 = reorientedPoint2 + (translationVector3.magnitude * (-Vector3.forward));
 
-        //// Orient the VR player's view
-        //Transform vrPlayer = Camera.main.transform; // Use your VR camera's transform
-        //vrPlayer.position = roomCenter; // Set the position to the room center
-        //vrPlayer.rotation = Quaternion.LookRotation(forwardVector, Vector3.up); // Align forward direction
+        Debug.DrawLine(Vector3.zero, reorientedPoint2, Color.white, durration); // Line to reoriented Pt2
+        Debug.DrawLine(reorientedPoint2, reorientedPoint3, Color.white, durration); // Line to reoriented Pt3
+        Debug.Log($"Reoriented Points: Pt2: {reorientedPoint2}, Pt3: {reorientedPoint3}");
 
-        //Debug.Log("Room calibrated successfully!");
-        //buttonController.UpdateStatus("Room calibrated successfully!");
-        //isCalibrating = false; // End calibration
+        // Place reoriented markers
+        PlaceMarker(Vector3.zero);
+        PlaceMarker(reorientedPoint2);
+        PlaceMarker(reorientedPoint3);
+
+        //--------------------------------------------------------------------------------------------------
+
+        Debug.DrawLine(pt1, playerCamera.transform.position, Color.yellow, durration); // Show player's calculated position
+        Debug.DrawLine(pt2, playerCamera.transform.position, Color.yellow, durration); // Show player's calculated position
+        Vector3 cameraForward = playerCamera.transform.position + playerCamera.transform.forward;
+        Vector3 cameraUp = playerCamera.transform.position + playerCamera.transform.up;
+        Debug.DrawLine(playerCamera.transform.position, cameraForward / 2, Color.red, durration); // Show player's calculated position
+        Debug.DrawLine(playerCamera.transform.position, cameraUp / 2, Color.blue, durration); // Show player's calculated position
+
+        // Calculate player position relative to the room
+        Vector3 cameraPosition = new Vector3(playerCamera.transform.position.x, pt1.y, playerCamera.transform.position.z);
+
+        Debug.DrawLine(pt1, cameraPosition, Color.white, durration); // Show player's calculated position
+        Debug.DrawLine(pt2, cameraPosition, Color.white, durration); // Show player's calculated position
+
+        float expectedHeight = playerRig.transform.position.y;
+        float actualHeight = playerRig.transform.position.y - pt1.y; // (pt1.y > 0 && pt1.y < playerRig.transform.position.y ? pt1.y : 0);
+        float yHeight = actualHeight - expectedHeight;
+
+        Vector3 pt1Normal = new Vector3(pt2.x - pt1.x, 0, pt2.z - pt1.z).normalized;
+        float rotateAngle = Vector3.Angle(pt1Normal, Vector3.right);
+        if (pt1Normal.z < 0)
+        {
+            rotateAngle = -rotateAngle;
+        }
+        Debug.Log("Rotation angle: " + rotateAngle);
+        // Create a rotation matrix around the Y-axis
+        Matrix4x4 rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, rotateAngle, 0));
+        Matrix4x4 rightRotMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, -rotateAngle, 0));
+
+        //----------------------------------------------------------------------------------------------
+
+        Vector3 newPlayerPosition = rotationMatrix.MultiplyPoint3x4((cameraPosition - pt1).normalized) * (cameraPosition - pt1).magnitude;
+        Vector3 rightNewPlayerPosition = rightRotMatrix.MultiplyPoint3x4((cameraPosition - pt1).normalized) * (cameraPosition - pt1).magnitude;
+        Debug.DrawLine(Vector3.zero, rightNewPlayerPosition, Color.green, durration); // Show player's calculated position
+
+        //newPlayerPosition = rotationMatrix.MultiplyPoint3x4(newPlayerPosition);
+        Debug.DrawLine(Vector3.zero, newPlayerPosition, Color.black, durration); // Show player's calculated position
+        
+        Vector3 vectorToOrigin = rotationMatrix.MultiplyPoint3x4((playerRig.transform.position - playerCamera.transform.position).normalized) * (playerRig.transform.position - playerCamera.transform.position).magnitude;
+       // vectorToOrigin = rotationMatrix.MultiplyPoint3x4(vectorToOrigin);
+
+        Vector3 newOriginForRig = newPlayerPosition + vectorToOrigin;
+        Debug.DrawLine(newOriginForRig, newPlayerPosition, Color.black, durration); // Show player's calculated position
+        newOriginForRig.y = yHeight;
+
+        playerRig.transform.position = newOriginForRig;
+        playerRig.transform.eulerAngles = new Vector3(0, rotateAngle, 0);
+
+        isCalibrating = false;
+        isSearching = true;
+        buttonController.UpdateStatus("Please look for your aprilTag");
     }
+
 
     public Vector3 CalculateThirdPoint(Vector2 pointA, Vector2 pointB, Vector2 pointC)
     {
@@ -207,30 +286,4 @@ public class RoomCalibration : MonoBehaviour
         // Return the distance between the point and the projected point
         return Vector2.Distance(point, projection);
     }
-
-    public void FitCube(Vector3 pointA, Vector3 pointB, Vector3 pointC)
-    {
-        // Calculate vectors representing the two arms of the right angle
-        Vector3 forward = (pointC - pointB).normalized;
-        Vector3 upwards = Vector3.Cross((pointA - pointC), (pointB - pointC)).normalized;
-        float sizeAC = (pointC - pointA).magnitude;
-        float sizeBC = (pointC - pointB).magnitude;
-
-        // Find the midpoint of the hypotenuse of the right angle
-        Vector3 hypotenuseMidpoint = (pointA + pointB) / 2;
-
-        // Position the cube at the midpoint of the hypotenuse
-        cube.transform.position = hypotenuseMidpoint;
-
-        // Rotate the cube to align with the plane of the right angle
-        Quaternion rotation = Quaternion.LookRotation(forward.normalized, upwards.normalized);
-        cube.transform.rotation = rotation;
-
-        // Scale the cube to fit inside the right angle
-        cube.transform.localScale = new Vector3(sizeAC, 0.01f, sizeBC);
-    }
-
-    // Place Room Corner:
-    // Look for vector from pt1 to pt2
-    // Find midpoint of the 
 }
