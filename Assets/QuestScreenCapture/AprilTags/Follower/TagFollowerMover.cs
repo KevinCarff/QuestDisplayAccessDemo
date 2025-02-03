@@ -11,6 +11,8 @@ namespace Trev3d.Quest.AprilTags
         public float lerpSpeed = 5f; // Speed for position interpolation
         public float slerpSpeed = 5f; // Speed for rotation interpolation
 
+        public GameObject rig;
+
         public float diff = 0;
         public float diffCap = .5f;
         public float deltaTime = 0;
@@ -40,9 +42,16 @@ namespace Trev3d.Quest.AprilTags
                 if (!allFollowers.ContainsKey(tagPose.ID))
                     continue;
 
+                Quaternion newQ = tagPose.Rotation;
+                newQ.eulerAngles = new Vector3(tagPose.Rotation.eulerAngles.x, tagPose.Rotation.eulerAngles.y + rig.transform.rotation.eulerAngles.y, tagPose.Rotation.eulerAngles.z);
+
+                Vector3 rotVector = Quaternion.AngleAxis(rig.transform.rotation.eulerAngles.y, Vector3.up) * tagPose.Position;
+
+                Vector3 newV = rotVector + rig.transform.position;
+
                 // Set target position and rotation for each detected tag
-                targetPositions[tagPose.ID] = tagPose.Position;
-                targetRotations[tagPose.ID] = tagPose.Rotation;
+                targetPositions[tagPose.ID] = newV; // tagPose.Position;
+                targetRotations[tagPose.ID] = newQ; //tagPose.Rotation + rig.transform.rotation;
             }
         }
 

@@ -20028,7 +20028,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   screenCaptureTextureManager: {fileID: 870527387}
   horizontalFovDeg: 80
-  tagSizeMeters: 0.175
+  tagSizeMeters: 0.1
   decimation: 2
   detectionEnabled: 0
 --- !u!114 &870527387
@@ -20125,6 +20125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lerpSpeed: 5
   slerpSpeed: 5
+  rig: {fileID: 1449624831}
   diff: 0
   diffCap: 0.5
   deltaTime: 0
@@ -20145,7 +20146,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1449624832}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &871889491
 GameObject:
@@ -33109,8 +33110,6 @@ Transform:
   - {fileID: 1576489177}
   - {fileID: 266231778}
   - {fileID: 1070294344}
-  - {fileID: 1744254391}
-  - {fileID: 870527389}
   m_Father: {fileID: 309644253}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1449624833
@@ -39271,7 +39270,7 @@ Transform:
   m_Children:
   - {fileID: 118354000}
   - {fileID: 222504237}
-  m_Father: {fileID: 1449624832}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1749158911
 GameObject:
@@ -47935,6 +47934,8 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 2126814505}
+  - {fileID: 1744254391}
+  - {fileID: 870527389}
   - {fileID: 309644253}
   - {fileID: 1452106368}
   - {fileID: 533277637}
