@@ -1,8 +1,12 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class RoomCalibration : MonoBehaviour
+public class RoomCalibration : NetworkBehaviour
 {
+    [SyncVar]
+    public bool PlayerHasCalibrated = false;
+
     public GameObject playerRig; // Assign a marker prefab in the inspector
     public GameObject playerCamera; // Assign a marker prefab in the inspector
     public GameObject markerPrefab; // Assign a marker prefab in the inspector
@@ -11,6 +15,14 @@ public class RoomCalibration : MonoBehaviour
     private Vector3[] cornerPoints = new Vector3[4]; // Store corner points
     private int clickCount = 0;
     private float durration = 500f;
+
+    public GameObject myTagTransform;
+
+    public GameObject netPoint1;
+    public GameObject netPoint2;
+    public GameObject netPoint3;
+    public GameObject netPoint4;
+    public GameObject netTagTransform;
 
     public CalibrationButtonController buttonController; // Reference to button script
 
@@ -46,8 +58,9 @@ public class RoomCalibration : MonoBehaviour
         if (!floor.activeSelf && !isCalibrating)
             floor.SetActive(true);
 
-        if (isSearching)
+        if (isSearching) //This will run when you finally search for the AprilTag
         {
+            LookForAndSetTagLocation();
             return;
         }
 
@@ -75,10 +88,30 @@ public class RoomCalibration : MonoBehaviour
         }
     }
 
+    public void LookForAndSetTagLocation()
+    {
+        if (primaryButtonAction.WasPressedThisFrame()) // set position of tag on button press
+        {
+            //Set 5 GameObjects with Network Transforms
+
+            isSearching = false;
+            PlayerHasCalibrated = true;
+        }
+    }
+
     public void StartCalibration()
     {
         isCalibrating = true;
         isSearching = false;
+
+        if (PlayerHasCalibrated) // TODO
+        {
+            isSearching = true;
+            isCalibrating = false;
+            buttonController.UpdateStatus("Please look for your aprilTag");
+            return;
+            // Do search imediately
+        }
 
         while (clickCount > 0)
         {
