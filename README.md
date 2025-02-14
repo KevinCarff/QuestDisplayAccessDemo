@@ -1,7 +1,6 @@
 # Kevin Carff's Fork of the Quest Display Access Demo
 
-
-
+Hello, I'm using this repo to develop an example of how AprilTags can be used to localize a shared space in VR. 
 
 # QDAD's Stuff 
 
