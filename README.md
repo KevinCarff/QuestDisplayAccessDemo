@@ -1,4 +1,9 @@
-# Quest Display Access Demo
+# Kevin Carff's Fork of the Quest Display Access Demo
+
+
+
+
+# QDAD's Stuff 
 
 Developers want camera access on the Meta Quest. Meta hasn't let us have it yet. The next best thing is display access. Thanks to Android's MediaProjector API, you can copy the display image to a texture in your Unity project in 'near realtime' (several frames of latency) as demonstrated in this horribly architected Unity project. No PC, embedded browser, or dev mode required
 
